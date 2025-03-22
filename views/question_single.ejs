@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+    <%- include ("header", {title: "Stack Overclone: Question"}) %>
+<body>
+    <main class="container-lg">
+        <!-- Individual Question -->
+        <h1><%= question.title%></h1>
+        <p><%= question.problem %></p>
+        <p>Tags: <%= question.tags.join(", ") %></p>
+        <p>Created: <%= new Date(question.created).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Singapore' }) %></p>
+        <p>Asked by: <%= question.username %></p>
+
+        <!-- Upvote/Downvote question form -->
+        <!-- <form method="POST" action="/questions/<%= question._id %>/upvote">
+            <button type="submit" class="btn btn-sm btn-outline-success">⬆️ Upvote Question (<%= question.upvotes ? question.upvotes.length : 0 %>)</button>
+        </form>
+        <form method="POST" action="/questions/<%= question._id %>/downvote">
+            <button type="submit" class="btn btn-sm btn-outline-danger">🔽 Downvote (<%= question.downvotes ? question.downvotes.length : 0 %>)</button>
+        </form> -->
+        <form method="POST" action="/questions/<%= question._id %>/vote" style="display:inline;">
+            <input type="hidden" name="voteType" value="up">
+            <button type="submit" class="btn btn-sm btn-outline-success">
+              🔼 <%= question.upvotes ? question.upvotes.length : 0 %>
+            </button>
+          </form>
+          
+          <form method="POST" action="/questions/<%= question._id %>/vote" style="display:inline;">
+            <input type="hidden" name="voteType" value="down">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              🔽 <%= question.downvotes ? question.downvotes.length : 0 %>
+            </button>
+          </form>
+          
+          
+        <!-- Edit and delete question use cases, only shown if the user is the author of the question   -->
+        <% if (user && user._id.toString() === question.userId.toString()) { %>
+            <button type="button" class="btn btn-primary rounded-pill" id="edit-profile-btn">Edit Question</button>
+            <form method="POST" action="/questions/<%= question._id %>/delete">
+                <input type="submit" class="btn btn-danger rounded-pill" value="Delete">
+            </form>
+            <!-- Edit question form, shows when user clicks the Edit Question button -->
+            <div class="row" id="edit-profile-form" style="display: none;">
+                <div class="col-md-6">
+                    <form method="POST" action="/questions/<%= question._id %>/edit">
+                        <div class="mb-3">
+                            <label for="title-input" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title-input" name="title" value="<%= question.title %>">
+                        </div>
+                        <div class="mb-3">
+                            <label for="problem-input" class="form-label">Problem</label>
+                            <input type="text" class="form-control" id="problem-input" name="problem" value="<%= question.problem %>">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tags-input" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="tags-input" name="tags" value="<%= question.tags.join(", ") %>">
+                        </div>
+                        <button type="submit" class="btn btn-success rounded-pill">Save Changes</button>
+                        <button type="button" class="btn btn-secondary rounded-pill" id="cancel-edit-btn">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        <% } %> 
+
+        <!-- Answers -->
+        <h2>Answers</h2>
+        <% if (question.answers && question.answers.length > 0) { %>
+            <% question.answers.forEach(function(answer) { %>
+                <div class="card mb-3">
+                  <div class="card-body">
+                    <p class="card-text"><%= answer.body %></p>
+                    <p class="card-text">Answered by: <%= answer.username %></p>
+                    
+                    <!-- Upvote/Downvote answer form -->
+                    <form method="POST" action="/questions/<%= question._id %>/answers/<%= answer._id %>/vote" style="display:inline;">
+                        <input type="hidden" name="voteType" value="up">
+                        <button type="submit" class="btn btn-sm btn-outline-success">⬆️ <%= answer.upvotes ? answer.upvotes.length : 0 %></button>
+                    </form>
+                    <form method="POST" action="/questions/<%= question._id %>/answers/<%= answer._id %>/vote" style="display:inline;">
+                        <input type="hidden" name="voteType" value="down">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">🔽 <%= answer.downvotes ? answer.downvotes.length : 0 %></button>
+                    </form>
+
+                                            
+                    <!-- Edit and delete answer use cases, only shown if the user is the author of the answer -->
+                    <% const isMyAnswer = user && user._id.toString() === answer.userId.toString(); %>
+                    <% if (isMyAnswer) { %>
+                      <button type="button" class="btn btn-primary rounded-pill" id="edit-answer-btn-<%= answer._id %>">Edit</button>
+              
+                      <form method="POST" action="/questions/<%= question._id %>/answers/<%= answer._id %>/delete">
+                        <input type="submit" class="btn btn-danger rounded-pill" value="Delete">
+                      </form>
+              
+                      <!-- Edit form, shown when user clicks edit-->
+                      <div class="row edit-answer-form" id="edit-answer-form-<%= answer._id %>" style="display: none;">
+                        <div class="col-md-6">
+                          <form method="POST" action="/questions/<%= question._id %>/answers/<%= answer._id %>/edit">
+                            <div class="mb-3">
+                              <label for="updated-answer-<%= answer._id %>" class="form-label">Updated Answer:</label>
+                              <textarea class="form-control" id="updated-answer-<%= answer._id %>" name="updatedAnswer" rows="3"><%= answer.body %></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success rounded-pill">Save Changes</button>
+                            <button type="button" class="btn btn-secondary rounded-pill" id="cancel-edit-answer-btn-<%= answer._id %>">Cancel</button>
+                          </form>
+                        </div>
+                      </div>
+              
+                      <script>
+                        document.getElementById("edit-answer-btn-<%= answer._id %>").addEventListener("click", function () {
+                          document.getElementById("edit-answer-form-<%= answer._id %>").style.display = "block";
+                          this.style.display = "none";
+                        });
+              
+                        document.getElementById("cancel-edit-answer-btn-<%= answer._id %>").addEventListener("click", function () {
+                          document.getElementById("edit-answer-form-<%= answer._id %>").style.display = "none";
+                          document.getElementById("edit-answer-btn-<%= answer._id %>").style.display = "inline-block";
+                        });
+                      </script>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+        <% } %>
+
+        <h2>Your Answer</h2>
+        <% if (user && user._id) { %>
+            <form method="POST" action="/questions/<%= question._id %>/answers/add">
+                <div class="mb-3">
+                    <label for="answer-input" class="form-label">Answer</label>
+                    <textarea class="form-control" id="answer-input" name="answer" rows="3" required></textarea>
+                </div>
+                <input type="hidden" name="userId" value="<%= user._id %>">
+                <button type="submit" class="btn btn-primary rounded-pill" id="answer-question-btn">Post Answer</button>
+            </form>
+        <% } else { %>
+            <p>Please <a href="/login">login</a> to post an answer.</p>
+        <% } %>
+
+        </main>
+        <%- include ("footer") %>
+        <script>
+            document.getElementById('edit-profile-btn').addEventListener('click', function() {
+                document.getElementById('edit-profile-form').style.display = 'block';
+                document.getElementById('username').style.display = 'none';
+                document.getElementById('email').style.display = 'none';
+                document.getElementById('created').style.display = 'none';
+                this.style.display = 'none';
+            });
+    
+            document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+                document.getElementById('edit-profile-form').style.display = 'none';
+                document.getElementById('username').style.display = 'block';
+                document.getElementById('email').style.display = 'block';
+                document.getElementById('created').style.display = 'block';
+                document.getElementById('edit-profile-btn').style.display = 'block';
+            });            
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

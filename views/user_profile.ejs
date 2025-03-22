@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include ("header", {title: "Stack Overclone: Profile"}) %>
+  <body>
+    <main class="container-lg">
+      <!-- Main content goes here -->
+      <h1>User Profile</h1>
+      <div class="row">
+          <div>
+              <% if (user.profilePic) { %>
+                  <img src="<%= user.profilePic %>" class="profile-pic" alt="Profile Picture" />
+              <% } else { %>
+                  <p>No profile picture uploaded.</p>
+              <% } %>
+          </div>
+          
+          <div class="col-md-6">
+              <h2>Username</h2>
+              <p id="username"><%= user.username %></p>
+              <h2>Email</h2>
+              <p id="email"><%= user.email %></p>
+              <h2>Date Created</h2>
+              <p><%= new Date(user.created).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Singapore' }) %></p>
+              <h2>Bio</h2>
+              <p><%= user.bio %></p>
+
+              <button type="button" class="btn btn-primary rounded-pill" id="edit-profile-btn">Edit Profile</button>
+          </div>
+          <div class="col-md-6">
+              <h2>Questions</h2>
+              <ul>
+                  <% if (user.questions && user.questions.length > 0) { %>
+                      <% user.questions.forEach(function(question) { %>
+                          <p><a href="/questions/<%= question._id %>"><%= question.title %></a></p>
+                      <% }); %>
+                  <% } else { %>
+                      <p>No questions found.</p>
+                  <% } %>
+              </ul>
+              <h2>Answers</h2>
+              <ul>
+                  <% if (user.answers && user.answers.length > 0) { %>
+                      <% user.answers.forEach(function(answer) { %>
+                          <p><a href="/questions/<%= answer.question._id %>"><%= answer.question.title %></a></p>
+                      <% }); %>
+                  <% } else { %>
+                      <p>No answers found.</p>
+                  <% } %>
+              </ul>
+          </div>
+      </div>
+      <div class="row" id="edit-profile-form" style="display: none;">
+          <div class="col-md-6"></div>
+              <form method="POST" action="/users/<%= user._id %>" enctype="multipart/form-data">
+                  <div class="mb-3">
+                      <label for="username-input" class="form-label">Username</label>
+                      <input type="text" class="form-control" id="username-input" name="username" value="<%= user.username %>">
+                  </div>
+                  <div class="mb-3">
+                      <label for="email-input" class="form-label">Email</label>
+                      <input type="email" class="form-control" id="email-input" name="email" value="<%= user.email %>">
+                  </div>
+                  <div class="mb-3">
+                      <label for="password-input" class="form-label">Password</label>
+                      <input type="password" class="form-control" id="password-input" name="password" value="<%= user.password %>">
+                  </div>
+                  <div class="mb-3">
+                      <label for="bio-input" class="form-label">Bio</label>
+                      <textarea class="form-control" id="bio-input" name="bio"><%= user.bio %></textarea>
+                  </div>
+                  <div class="mb-3">
+                      <label for="profile-pic" class="form-label">Profile Picture</label>
+                      <input type="file" class="form-control" id="profile-pic" name="profilePic">
+                  </div>
+                  <button type="submit" class="btn btn-success rounded-pill">Save Changes</button>
+                  <button type="button" class="btn btn-secondary rounded-pill" id="cancel-edit-btn">Cancel</button>
+              </form>
+          </div>
+      </div>
+    </main>
+    <%- include ("footer") %>
+    <script>
+        document.getElementById('edit-profile-btn').addEventListener('click', function() {
+            document.getElementById('edit-profile-form').style.display = 'block';
+            document.getElementById('username').style.display = 'none';
+            document.getElementById('email').style.display = 'none';
+            document.getElementById('created').style.display = 'none';
+            this.style.display = 'none';
+        });
+
+        document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+            document.getElementById('edit-profile-form').style.display = 'none';
+            document.getElementById('username').style.display = 'block';
+            document.getElementById('email').style.display = 'block';
+            document.getElementById('created').style.display = 'block';
+            document.getElementById('edit-profile-btn').style.display = 'block';
+        });
+
+        document.getElementById("profile-form").addEventListener("submit", function(event) {
+            const formData = new FormData(this);
+            console.log("Submitting Form Data:");
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ": " + pair[1]);
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
