@@ -100,10 +100,14 @@
                     <% } else if (user && user._id && question.userId && user._id.toString() === question.userId.toString()) { %>
                         <a href="/questions/<%= question._id %>/" class="btn btn-sm btn-outline-success position-relative z-1 disabled-link mb-2">▲ <%= upVotes %></a>
                         <a href="/questions/<%= question._id %>/" class="btn btn-sm btn-outline-danger position-relative z-1 disabled-link mb-2">▼ <%= downVotes %></a>
-                    <% } else { %>
-                      <!-- Not logged in or voting on own question -->
+                    <% } else if (!user) { %>
+                      <!-- Not logged in  -->
                       <a href="/login" class="btn btn-sm btn-outline-success disabled-link">▲ <%= upVotes %></a>
                       <a href="/login" class="btn btn-sm btn-outline-danger disabled-link">▼ <%= downVotes %></a>
+                    <% } else { %>
+                      <!-- see votes of my answer -->
+                      <a class="btn btn-sm btn-outline-success disabled-link mb-2">▲ <%= upVotes %></a>
+                      <a class="btn btn-sm btn-outline-danger disabled-link mb-2">▼ <%= downVotes %></a>
                     <% } %>
                   </div>
 

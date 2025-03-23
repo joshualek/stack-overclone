@@ -3,7 +3,7 @@ const session = require("express-session");
 const path = require("path");
 const bodyParser = require("body-parser");
 const multer = require("multer");
-const { insertUser, updateUser, deleteUser, getAllUsers, getUserById, getUserByUsername, } = require("./lib/database");
+const { insertUser, updateUser, getUserById, getUserByUsername, getUserByEmail } = require("./lib/database");
 
 const { requireAuth } = require("./middleware/auth");
 
@@ -134,13 +134,23 @@ app.post("/doregister", async (req, res) => {
     const userData = req.body;
     console.log(`Register attempt- username: ${userData.username}, email: ${userData.email}, password: ${userData.password}`);
 
-    const existingUser = await getUserByUsername(userData.username);
-    if (existingUser) {
-        console.log("User already exists")
+    // Check if the username already exists
+    const existingUserByUsername = await getUserByUsername(userData.username);
+    if (existingUserByUsername) {
+        console.log("User already exists");
         res.redirect("/register?error=User already exists");
         return;
     }
 
+    // Check if the email already exists
+    const existingUserByEmail = await getUserByEmail(userData.email);
+    if (existingUserByEmail) {
+        console.log("Email already exists");
+        res.redirect("/register?error=Email already exists");
+        return;
+    }
+
+    // If both checks pass, insert the new user
     const newUser = await insertUser(userData);
     console.log("New user created:", newUser._id);
     req.session.userId = newUser._id;
