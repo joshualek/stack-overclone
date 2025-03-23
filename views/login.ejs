@@ -68,13 +68,13 @@
               <%= forgotPassword ? 'Set New Password' : 'Login' %>
             </button>
             <div class="text-center mt-3">
-              <a href="/register">Don't have an account? Register</a>
+              <a href="/register"><span>Don't have an account? Register</span></a>
             </div>
             <div class="text-center mt-3">
               <% if (!forgotPassword) { %>
-              <a href="/login?forgotPassword=true">Forgot Password</a>
+              <a href="/login?forgotPassword=true"><span>Forgot Password</span></a>
               <% } else { %>
-              <a href="/login">Login</a>
+              <a href="/login"><span>Back to Login</span></a>
               <% } %>
             </div>
           </form>

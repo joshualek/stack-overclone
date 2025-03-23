@@ -1,109 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
-  <%- include ("header", {title: "Stack Overclone: Profile"}) %>
+  <%- include("header", { title: "Stack Overclone: User Profile" }) %>
   <body>
-    <main class="container-lg">
-      <!-- Main content goes here -->
-      <h1>User Profile</h1>
-      <div class="row">
-          <div>
-              <% if (user.profilePic) { %>
-                  <img src="<%= user.profilePic %>" class="profile-pic" alt="Profile Picture" />
-              <% } else { %>
-                  <p>No profile picture uploaded.</p>
-              <% } %>
+    <main class="container-lg mt-5">
+      <h1 class="mb-4">User Profile</h1>
+      <div class="card mb-4 p-3">
+        <div class="row align-items-center">
+          <!-- Profile Picture -->
+          <div class="col-md-3 text-center">
+            <% if (user.profilePic) { %>
+              <img src="<%= user.profilePic %>" class="img-fluid rounded-circle" style="max-width: 250px;">
+            <% } else { %>
+              <div class="bg-light rounded-circle" style="width: 250px; height: 250px;"></div>
+            <% } %>
           </div>
-          
-          <div class="col-md-6">
-              <h2>Username</h2>
-              <p id="username"><%= user.username %></p>
-              <h2>Email</h2>
-              <p id="email"><%= user.email %></p>
-              <h2>Date Created</h2>
-              <p><%= new Date(user.created).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Singapore' }) %></p>
-              <h2>Bio</h2>
-              <p><%= user.bio %></p>
+      
+          <!-- User Info -->
+          <div class="col-md-9">
+            <p class="profile-view"><strong>Username:</strong> <span><%= user.username %></span></p>
+            <p class="profile-view"><strong>Email:</strong> <span><%= user.email %></span></p>
+            <p class="profile-view"><strong>Bio:</strong> <%= user.bio || 'No bio provided' %></p>
+            <p class="profile-view"><strong>Joined:</strong> 
+              <span>
+                <%= new Date(user.created).toLocaleString('en-GB', {
+                  day: 'numeric', month: 'numeric', year: 'numeric',
+                  hour: 'numeric', minute: 'numeric', hour12: true,
+                  timeZone: 'Asia/Singapore'
+                }) %>
+              </span>
+            </p>
 
-              <button type="button" class="btn btn-primary rounded-pill" id="edit-profile-btn">Edit Profile</button>
+            <% if (user && loggedInUser && user._id.toString() === loggedInUser._id.toString()) { %>
+              <button type="button" class="btn btn-primary rounded-pill profile-view" id="edit-profile-btn">Edit Profile</button>
+            <% } %>
           </div>
-          <div class="col-md-6">
-              <h2>Questions</h2>
-              <ul>
-                  <% if (user.questions && user.questions.length > 0) { %>
-                      <% user.questions.forEach(function(question) { %>
-                          <p><a href="/questions/<%= question._id %>"><%= question.title %></a></p>
-                      <% }); %>
-                  <% } else { %>
-                      <p>No questions found.</p>
-                  <% } %>
-              </ul>
-              <h2>Answers</h2>
-              <ul>
-                  <% if (user.answers && user.answers.length > 0) { %>
-                      <% user.answers.forEach(function(answer) { %>
-                          <p><a href="/questions/<%= answer.question._id %>"><%= answer.question.title %></a></p>
-                      <% }); %>
-                  <% } else { %>
-                      <p>No answers found.</p>
-                  <% } %>
-              </ul>
-          </div>
+
+        </div>
       </div>
-      <div class="row" id="edit-profile-form" style="display: none;">
-          <div class="col-md-6"></div>
-              <form method="POST" action="/users/<%= user._id %>" enctype="multipart/form-data">
-                  <div class="mb-3">
-                      <label for="username-input" class="form-label">Username</label>
-                      <input type="text" class="form-control" id="username-input" name="username" value="<%= user.username %>">
-                  </div>
-                  <div class="mb-3">
-                      <label for="email-input" class="form-label">Email</label>
-                      <input type="email" class="form-control" id="email-input" name="email" value="<%= user.email %>">
-                  </div>
-                  <div class="mb-3">
-                      <label for="password-input" class="form-label">Password</label>
-                      <input type="password" class="form-control" id="password-input" name="password" value="<%= user.password %>">
-                  </div>
-                  <div class="mb-3">
-                      <label for="bio-input" class="form-label">Bio</label>
-                      <textarea class="form-control" id="bio-input" name="bio"><%= user.bio %></textarea>
-                  </div>
-                  <div class="mb-3">
-                      <label for="profile-pic" class="form-label">Profile Picture</label>
-                      <input type="file" class="form-control" id="profile-pic" name="profilePic">
-                  </div>
-                  <button type="submit" class="btn btn-success rounded-pill">Save Changes</button>
-                  <button type="button" class="btn btn-secondary rounded-pill" id="cancel-edit-btn">Cancel</button>
-              </form>
+
+      <!-- Edit Form (toggle visibility) -->
+      <% if (error) { %>
+        <div class="alert alert-danger"><%= error %></div>
+      <% } %>
+      <% if (user && loggedInUser && user._id.toString() === loggedInUser._id.toString()) { %>
+        <div class="row" id="edit-profile-form" style="display: none;">
+          <div class="col-md-6">
+            <form method="POST" action="/users/<%= user._id %>/edit" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="username-input" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username-input" name="username" value="<%= user.username %>">
+              </div>
+            
+              <div class="mb-3">
+                <label for="email-input" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email-input" name="email" value="<%= user.email %>">
+              </div>
+            
+              <div class="mb-3">
+                <label for="password-input" class="form-label">New Password</label>
+                <input type="password" class="form-control" id="password-input" name="password">
+              </div>
+            
+              <div class="mb-3">
+                <label for="bio-input" class="form-label">Bio</label>
+                <textarea class="form-control" id="bio-input" name="bio" rows="3"><%= user.bio || '' %></textarea>
+              </div>
+            
+              <div class="mb-3">
+                <label for="profilePic" class="form-label">Profile Picture</label>
+                <input type="file" class="form-control" id="profilePic" name="profilePic" accept="image/*">
+                <% if (user.profilePic) { %>
+                  <img src="<%= user.profilePic %>" class="img-thumbnail mt-2" width="150">
+                <% } %>
+              </div>
+            
+              <button type="submit" class="btn btn-success rounded-pill">Save</button>
+              <button type="button" class="btn btn-secondary rounded-pill" id="cancel-edit-btn">Cancel</button>
+            </form>
           </div>
+        </div>
+      <% } %>
+
+      <!-- User’s Questions -->
+      <div class="row mt-5">
+        <!-- Questions Asked -->
+        <div class="col-md-6">
+          <h2>Questions You Asked</h2>
+          <% if (user.questions && user.questions.length > 0) { %>
+            <% user.questions.forEach(q => { %>
+              <div class="position-relative card mb-3 shadow-sm px-3 py-2" style="cursor: pointer;">
+                <a href="/questions/<%= q._id %>" class="stretched-link"></a>
+                
+                <h3 class="mb-1 position-relative" style="z-index: 1;"><%= q.title %></h3>
+                <p class="text-dark position-relative" style="z-index: 1;"><%= q.problem %></p>
+      
+                <div class="d-flex justify-content-between align-items-center mt-2 position-relative" style="z-index: 1;">
+                  <!-- Tags -->
+                  <div>
+                    <% q.tags?.forEach(tag => { %>
+                      <a href="/questions?tag=<%= tag %>" class="badge bg-secondary text-decoration-none me-1"><%= tag %></a>
+                    <% }) %>
+                  </div>
+      
+                  <!-- Asked By -->
+                  <div class="col-4 text-center position-relative" style="z-index: 1;">
+                    <small class="text-muted"><a href="/users/<%= q.userId %>">
+                      Asked by:
+                      <% if (q.username) { %>
+                        <span><%= q.username %></span>
+                      <% } %>
+                    </a></small>
+                  </div>
+                
+                  <!-- Date -->
+                  <small class="text-muted">
+                    <%= new Date(q.created).toLocaleString("en-GB", {
+                      day: "numeric", month: "numeric", year: "numeric",
+                      hour: "numeric", minute: "numeric", hour12: true,
+                      timeZone: "Asia/Singapore"
+                    }) %>
+                  </small>
+      
+                  <!-- Votes -->
+                  <div>
+                    <button class="btn btn-sm btn-outline-success disabled" disabled>▲ <%= q.upvotes?.length || 0 %></button>
+                    <button class="btn btn-sm btn-outline-danger disabled" disabled>▼ <%= q.downvotes?.length || 0 %></button>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p class="text-muted">No questions posted yet.</p>
+          <% } %>
+        </div>
+      
+        <!-- Questions Answered -->
+        <div class="col-md-6">
+          <h2>Questions You Answered</h2>
+          <% if (user.answers && user.answers.length > 0) { %>
+            <% user.answers.forEach(({ question }) => { %>
+              <% if (question) { %>
+                <div class="position-relative card mb-3 shadow-sm px-3 py-2" style="cursor: pointer;">
+                  <a href="/questions/<%= question._id %>" class="stretched-link"></a>
+      
+                  <h3 class="mb-1 position-relative" style="z-index: 1;"><%= question.title %></h3>
+                  <p class="text-dark position-relative" style="z-index: 1;"><%= question.problem %></p>
+      
+                  <div class="d-flex justify-content-between align-items-center mt-2 position-relative" style="z-index: 1;">
+                    <!-- Tags -->
+                    <div>
+                      <% question.tags?.forEach(tag => { %>
+                        <a href="/questions?tag=<%= tag %>" class="badge bg-secondary text-decoration-none me-1"><%= tag %></a>
+                      <% }) %>
+                    </div>
+      
+                    <!-- Asked By -->
+                    <div class="col-4 text-center position-relative" style="z-index: 1;">
+                      <small class="text-muted"><a href="/users/<%= question.userId %>">
+                        Asked by:
+                        <% if (question.username) { %>
+                          <span><%= question.username %></span>
+                        <% } %>
+                      </a></small>
+                    </div>
+
+                    <!-- Date -->
+                    <small class="text-muted">
+                      <%= new Date(question.created).toLocaleString("en-GB", {
+                        day: "numeric", month: "numeric", year: "numeric",
+                        hour: "numeric", minute: "numeric", hour12: true,
+                        timeZone: "Asia/Singapore"
+                      }) %>
+                    </small>
+      
+                    <!-- Votes -->
+                    <div>
+                      <button class="btn btn-sm btn-outline-success disabled" disabled>▲ <%= question.upvotes?.length || 0 %></button>
+                      <button class="btn btn-sm btn-outline-danger disabled" disabled>▼ <%= question.downvotes?.length || 0 %></button>
+                    </div>
+                  </div>
+                </div>
+              <% } %>
+            <% }) %>
+          <% } else { %>
+            <p class="text-muted">No answers posted yet.</p>
+          <% } %>
+        </div>
       </div>
     </main>
-    <%- include ("footer") %>
+
     <script>
-        document.getElementById('edit-profile-btn').addEventListener('click', function() {
-            document.getElementById('edit-profile-form').style.display = 'block';
-            document.getElementById('username').style.display = 'none';
-            document.getElementById('email').style.display = 'none';
-            document.getElementById('created').style.display = 'none';
-            this.style.display = 'none';
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        const editBtn = document.getElementById("edit-profile-btn");
+        const cancelBtn = document.getElementById("cancel-edit-btn");
+        const form = document.getElementById("edit-profile-form");
 
-        document.getElementById('cancel-edit-btn').addEventListener('click', function() {
-            document.getElementById('edit-profile-form').style.display = 'none';
-            document.getElementById('username').style.display = 'block';
-            document.getElementById('email').style.display = 'block';
-            document.getElementById('created').style.display = 'block';
-            document.getElementById('edit-profile-btn').style.display = 'block';
-        });
+        if (editBtn && cancelBtn && form) {
+          editBtn.addEventListener("click", () => {
+            form.style.display = "block";
+            document.querySelectorAll(".profile-view").forEach(el => el.style.display = "none");
 
-        document.getElementById("profile-form").addEventListener("submit", function(event) {
-            const formData = new FormData(this);
-            console.log("Submitting Form Data:");
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ": " + pair[1]);
-            }
-        });
+            editBtn.style.display = "none";
+          });
+
+          cancelBtn.addEventListener("click", () => {
+            form.style.display = "none";
+            document.querySelectorAll(".profile-view").forEach(el => el.style.display = "block");
+
+            editBtn.style.display = "inline-block";
+          });
+        }
+      });
     </script>
+
+    <%- include("footer") %>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

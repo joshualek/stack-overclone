@@ -1,36 +1,21 @@
 const express = require("express");
 const router = express.Router();
+const { editUserProfile, getUserProfile } = require("../handlers/users.handlers");
+const { requireAuth } = require("../middleware/auth");
 const multer = require("multer");
 
-const {
-    getUserProfile,
-    editUserProfile,
-    addAUser,
-    deleteAUser,
-    getAllUsersHandler,
-    getAUser,
-} = require("../handlers/users.handlers");
-
-const { requireAuth } = require("../middleware/auth");
-
-const upload = multer({ 
-    storage: multer.diskStorage({
-        destination: function (req, file, cb) {
-            cb(null, "public/uploads/");
-        },
-        filename: function (req, file, cb) {
-            cb(null, Date.now() + "-" + file.originalname);
-        }
-    })
+// Setup multer
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/uploads/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
 });
+const upload = multer({ storage });
 
-router.get("/:id", requireAuth, getUserProfile);
-router.post("/:id", requireAuth, editUserProfile);
-// router.post("/:id", upload.single("profilePic"), editUserProfile);
-router.post("/:id", upload.single("profilePic"), (req, res, next) => {
-    console.log("Multer processed file:", req.file);
-    next();
-}, editUserProfile);
-
+router.get("/:id", getUserProfile);
+router.post("/:id/edit", requireAuth, upload.single("profilePic"), editUserProfile);
 
 module.exports = router;
