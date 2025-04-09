@@ -71,6 +71,9 @@ app.use("/users", usersRouter);
 const questionsRouter = require("./routes/questions.routes");
 app.use("/questions", questionsRouter);
 
+const apiUsersRoutes = require("./routes/api_users.routes");
+app.use("/api/users", apiUsersRoutes);
+
 // Authentication
 app.get("/", (req, res) => {
     res.render("main");

@@ -122,10 +122,12 @@ async function getQuestionById(questionId) {
     return await collectionQuestions.findOne({ _id });
 }
 
-async function insertUser(userData) {
+async function insertUser(user) {
     await initDBIfNecessary();
-    const result = await collectionUsers.insertOne(userData);
-    return { ...userData, _id: result.insertedId };
+    user.created = new Date();
+    const newUser = await collectionUsers.insertOne(user);
+    user._id = newUser.insertedId.toString();
+    return user;
 }
 
 async function updateUser(userId, updates) {
