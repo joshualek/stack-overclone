@@ -1,11 +1,9 @@
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
-const bodyParser = require("body-parser");
+const cors = require("cors");
 const multer = require("multer");
-const { insertUser, updateUser, getUserById, getUserByUsername, getUserByEmail } = require("./lib/database");
-
-const { requireAuth } = require("./middleware/auth");
+const { getUserById } = require("./lib/database");
 
 // Express app
 const app = express();
@@ -13,10 +11,10 @@ const port = 3000;
 
 // Set view engine to EJS
 app.set('view engine', 'ejs');
-// app.set('views', path.join(__dirname, 'views'));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Session
 app.use(
@@ -30,8 +28,14 @@ app.use(
     })
 );
 
+// enable cors
+app.use(cors({
+    origin: 'http://localhost:5173', 
+    credentials: true
+}));
+
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -46,124 +50,44 @@ const upload = multer({ storage: storage });
 
 app.use(async (req, res, next) => {
     if (req.session.userId) {
-      try {
-        // Fetch the user from the DB using the stored session ID
-        const user = await getUserById(req.session.userId);
-        // Attach it to req and res.locals so all templates have access to it
-        req.user = user;
-        res.locals.user = user;
-      } catch (error) {
-        console.error("Error fetching user:", error);
+        try {
+            // Fetch the user from the DB using the stored session ID
+            const user = await getUserById(req.session.userId);
+            // Attach it to req and res.locals so all templates have access to it
+            req.user = user;
+            res.locals.user = user;
+        } catch (error) {
+            console.error("Error fetching user:", error);
+            req.user = null;
+            res.locals.user = null;
+        }
+    } else {
         req.user = null;
         res.locals.user = null;
-      }
-    } else {
-      req.user = null;
-      res.locals.user = null;
     }
     next();
 });
 
 // Routes
-const usersRouter = require("./routes/users.routes");
-app.use("/users", usersRouter);
-
-const questionsRouter = require("./routes/questions.routes");
-app.use("/questions", questionsRouter);
-
 const apiUsersRoutes = require("./routes/api_users.routes");
 app.use("/api/users", apiUsersRoutes);
 
-// Authentication
+const apiQuestionsRoutes = require("./routes/api_questions.routes");
+app.use("/api/questions", apiQuestionsRoutes);
+
+app.use("/api", require("./routes/api_misc.routes"));
+
+
+
 app.get("/", (req, res) => {
     res.render("main");
 });
 
-app.get("/login", (req, res) => {
-    const forgotPassword = req.query.forgotPassword === 'true';
-    res.render("login", { forgotPassword });
-})
-
-app.post("/dologin", async (req, res) => {
-    const { username, password } = req.body;
-    console.log("Login attempt-", { username, password });
-
-    try {
-        const foundUser = await getUserByUsername(username);
-        if (foundUser) {
-            console.log("Found user:", foundUser._id);
-            if (foundUser.password === password) {
-                req.session.userId = foundUser._id;
-                console.log("Login successful");
-                res.redirect("/");
-            } else {
-                console.log("Incorrect password");
-                res.redirect("/login?error=Incorrect password");
-            }
-        } else {
-            console.log("User not found");
-            res.redirect("/login?error=User not found");
-        }
-    } catch (error) {
-        console.error("Error during login:", error);
-        res.redirect("/login?error=An error occurred");
-    }
-});
-
-app.post("/doforgotpassword", async (req, res) => {
-    const { username, password } = req.body;
-    console.log("Forgot password attempt-", { username });
-    
-    const foundUser = await getUserByUsername(username);
-    
-    if (foundUser) {
-        console.log("Found user:", foundUser._id);
-        foundUser.password = password;
-        await updateUser(foundUser._id.toString(), { password });
-
-        console.log("Password reset successful");
-        res.redirect("/login");
-    } else {
-        console.log("User not found");
-        res.redirect("/login?error=User not found");
-    }
-});
-
-app.get("/register", (req, res) => {
-    res.render("register");
-});
-
-app.post("/doregister", async (req, res) => {
-    const userData = req.body;
-    console.log(`Register attempt- username: ${userData.username}, email: ${userData.email}, password: ${userData.password}`);
-
-    // Check if the username already exists
-    const existingUserByUsername = await getUserByUsername(userData.username);
-    if (existingUserByUsername) {
-        console.log("User already exists");
-        res.redirect("/register?error=User already exists");
-        return;
-    }
-
-    // Check if the email already exists
-    const existingUserByEmail = await getUserByEmail(userData.email);
-    if (existingUserByEmail) {
-        console.log("Email already exists");
-        res.redirect("/register?error=Email already exists");
-        return;
-    }
-
-    // If both checks pass, insert the new user
-    const newUser = await insertUser(userData);
-    console.log("New user created:", newUser._id);
-    req.session.userId = newUser._id;
-    res.redirect("/");
-});
-
-app.get("/logout", (req, res) => {
-    req.session.userId = null;
-    res.redirect("/");
-});
+// Authentication
+const { loginHandler, forgotPasswordHandler, registerHandler } = require("./handlers/api_users.handlers");
+app.post("/api/login", loginHandler);
+app.post("/api/doforgotpassword", forgotPasswordHandler);
+app.post("/api/register", registerHandler);
 
 app.listen(port, () => {
     console.log(`Stack Overclone listening at http://localhost:${port}`);

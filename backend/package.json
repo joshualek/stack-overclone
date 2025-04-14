@@ -10,9 +10,11 @@
   "author": "joshualek",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.15.0",
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.9"

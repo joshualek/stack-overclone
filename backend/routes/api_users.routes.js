@@ -1,22 +1,29 @@
 const express = require("express");
 const router = express.Router();
+const path = require("path");
 
-const { editUserProfileJSON, getUserProfileJSON } = require("../handlers/api_users.handlers");
-const { requireAuth } = require("../middleware/auth");
+const { getAllUsersJSON, getUserProfileJSON, editUserProfileJSON, } = require("../handlers/api_users.handlers");
+const { requireAuthJWT } = require("../middleware/auth");
 const multer = require("multer");
 
 // Setup multer
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage });
+const uploadPath = path.join(__dirname, "..", "uploads");
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadPath); 
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + "-" + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({ storage });
+module.exports = upload;
+
+router.get("/", getAllUsersJSON);
 router.get("/:id", getUserProfileJSON);
-router.post("/:id/edit", requireAuth, upload.single("profilePic"), editUserProfileJSON);
+router.patch("/:id/edit", requireAuthJWT, upload.single("profilePic"), editUserProfileJSON);
 
 module.exports = router;

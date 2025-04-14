@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { editUserProfile, getUserProfile } = require("../handlers/users.handlers");
-const { requireAuth } = require("../middleware/auth");
 const multer = require("multer");
 
 // Setup multer
@@ -16,6 +15,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get("/:id", getUserProfile);
-router.post("/:id/edit", requireAuth, upload.single("profilePic"), editUserProfile);
+router.post("/:id/edit", upload.single("profilePic"), editUserProfile);
 
 module.exports = router;

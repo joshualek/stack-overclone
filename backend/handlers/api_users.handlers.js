@@ -6,15 +6,68 @@ const {
     getAllUsers,
     getUserById,
     getUserByUsername,
+    getUserByEmail,
     getAllQuestions,
     getQuestionById,
 } = require("../lib/database");
-const { editUserProfile } = require("./users.handlers");
+const { editUserProfile, login } = require("./users.handlers");
+const jwt = require("jsonwebtoken");
+const { get } = require("../routes/users.routes");
+const JWT_SECRET = "SECRET_STRING";
 
-const logout = async (req, res) => {
-    req.session.destroy(() => {
-        res.redirect("/");
-    });
+const loginHandler = async (req, res) => {
+    const { username, password } = req.body;
+    const user = await getUserByUsername(username);
+
+    console.log("Login attempt:", username, password)
+    console.log("Found user:", user)
+
+    if (user && user.password === password) {
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "12h" });
+        res.json({ accessToken: token });
+    } else {
+        res.status(401).json({ message: "Invalid credentials" });
+    }
+};
+
+const forgotPasswordHandler = async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const user = await getUserByUsername(username);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        await updateUser(user._id.toString(), { password });
+        res.json({ message: "Password reset successful" });
+
+    } catch (error) {
+        console.error("Error resetting password:", error);
+        res.status(500).json({ message: "An error occurred while resetting the password" });
+    }
+}
+
+const registerHandler = async (req, res) => {
+    const { username, email, password } = req.body;
+
+    const existingUserByUsername = await getUserByUsername(username);
+    if (existingUserByUsername) {
+        return res.status(400).json({ message: "Username already exists" });
+    }
+
+    const existingUserByEmail = await getUserByEmail(email);
+    if (existingUserByEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const newUser = await insertUser({ username, email, password });
+    return res.status(201).json({ message: "User registered successfully", userId: newUser._id });
+};
+
+
+const getAllUsersJSON = async (req, res) => {
+    const users = await getAllUsers();
+    if (!users) res.status(404).json({ error: "No users found" });
+    res.json(users);
 }
 
 const getUserProfileJSON = async (req, res) => {
@@ -22,7 +75,7 @@ const getUserProfileJSON = async (req, res) => {
     if (!user) res.status(404).json({ error: "User not found" });
 
     // Fetch questions that the user asked
-    const questions = user.questions 
+    const questions = user.questions
         ? await Promise.all(
             user.questions.map(async (qid) => await getQuestionById(qid))
         )
@@ -50,24 +103,18 @@ const getUserProfileJSON = async (req, res) => {
     res.json(user);
 }
 
-const addAUserJSON = async (req, res) => {
-    const { username, password } = req.body;
-    const existingUser = await getUserByUsername(username);
-    if (existingUser) return res.status(400).json({ error: "User already exists, please login or choose a new username" });
-    const newUser = await insertUser({ username, password });
-    req.session.userId = newUser._id;
-    res.json({ success: true, message: "User created successfully", user: newUser });
-};
-
 const editUserProfileJSON = async (req, res) => {
-    if (!user) res.status(404).json({ error: "User not found" });
+    const userId = req.params.id;
+    const user = await getUserById(userId);
 
-    // Check if the logged-in user is the same as the user being edited
-    if (req.user._id.toString() !== user._id.toString()) {
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Check if the logged-in user matches the profile being edited
+    if (req.user._id.toString() !== userId) {
         return res.status(403).json({ error: "You are not authorized to edit this profile" });
     }
-    const updates = {};
 
+    const updates = {};
     if (req.body.username) updates.username = req.body.username.trim();
     if (req.body.email) updates.email = req.body.email.trim();
     if (req.body.password) updates.password = req.body.password.trim();
@@ -80,23 +127,24 @@ const editUserProfileJSON = async (req, res) => {
     } catch (error) {
         console.error("Error updating user:", error);
 
-        let errorMessage = "An error occurred during update. Please use a different username/email.";
-        if (error.type === "USERNAME_TAKEN") {
-            errorMessage = "The username is already taken.";
-        } else if (error.type === "EMAIL_TAKEN") {
-            errorMessage = "The email is already taken.";
-        }
+        let errorMessage = "An error occurred during update.";
+        if (error.type === "USERNAME_TAKEN") errorMessage = "The username is already taken.";
+        else if (error.type === "EMAIL_TAKEN") errorMessage = "The email is already taken.";
+
         res.status(400).json({
             success: false,
-            error: errorMessage ? errorMessage : "An unknown error occurred",
+            error: errorMessage,
         });
     }
-
-}
+};
 
 
 
 module.exports = {
+    loginHandler,
+    forgotPasswordHandler,
+    registerHandler,
+    getAllUsersJSON,
     getUserProfileJSON,
     editUserProfileJSON,
 };

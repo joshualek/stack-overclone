@@ -7,87 +7,96 @@ let collectionUsers;
 let collectionQuestions;
 
 async function seedDummyData() {
-  const userNames = ["alice", "bob", "charlie", "diana", "edward"];
-  const tags = ["javascript", "node", "mongodb", "express", "ejs", "html", "css"];
-  const userIds = userNames.map(() => new ObjectId());
+    const userNames = ["alice", "bob", "charlie", "diana", "edward"];
+    const tags = ["javascript", "node", "mongodb", "express", "ejs", "html", "css"];
+    const userIds = userNames.map(() => new ObjectId());
 
-  const users = userNames.map((name, i) => ({
-    _id: userIds[i],
-    username: name,
-    email: `${name}@gmail.com`,
-    password: "user",
-    created: new Date(),
-    questions: [],
-    bio: `Hello, I'm ${name}!`,
-    profilePic: ""
-  }));
-
-  const questions = [];
-
-  for (let i = 0; i < 6; i++) {
-    const uid = userIds[i % userIds.length];
-    const username = userNames[i % userNames.length];
-    const questionId = new ObjectId();
-    const tagsSample = tags.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 1);
-
-    const question = {
-      _id: questionId,
-      title: `Sample Question ${i + 1}`,
-      problem: `This is the body of sample question ${i + 1}.`,
-      tags: tagsSample,
-      userId: uid,
-      username,
-      created: new Date(),
-      answers: [],
-      upvotes: [],
-      downvotes: []
-    };
-
-    // Add random answers
-    const answerCount = Math.floor(Math.random() * 3) + 1;
-    for (let j = 0; j < answerCount; j++) {
-      const answererIndex = Math.floor(Math.random() * users.length);
-      const answer = {
-        _id: new ObjectId(),
-        body: `This is an answer by ${userNames[answererIndex]} for question ${i + 1}.`,
-        userId: userIds[answererIndex],
-        username: userNames[answererIndex],
+    const users = userNames.map((name, i) => ({
+        _id: userIds[i],
+        username: name,
+        email: `${name}@gmail.com`,
+        password: "user",
         created: new Date(),
-        upvotes: [],
-        downvotes: []
-      };
-      question.answers.push(answer);
+        questions: [],
+        bio: `Hello, I'm ${name}!`,
+        profilePic: ""
+    }));
+
+    const questions = [];
+
+    for (let i = 0; i < 6; i++) {
+        const uid = userIds[i % userIds.length];
+        const username = userNames[i % userNames.length];
+        const questionId = new ObjectId();
+        const tagsSample = tags.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 1);
+
+        const question = {
+            _id: questionId,
+            title: `Sample Question ${i + 1}`,
+            problem: `This is the body of sample question ${i + 1}.`,
+            tags: tagsSample,
+            userId: uid,
+            username,
+            created: new Date(),
+            answers: [],
+            upvotes: [],
+            downvotes: []
+        };
+
+        // Add random answers
+        const answerCount = Math.floor(Math.random() * 3) + 1;
+        for (let j = 0; j < answerCount; j++) {
+            const answererIndex = Math.floor(Math.random() * users.length);
+            const answer = {
+                _id: new ObjectId(),
+                body: `This is an answer by ${userNames[answererIndex]} for question ${i + 1}.`,
+                userId: userIds[answererIndex],
+                username: userNames[answererIndex],
+                created: new Date(),
+                upvotes: [],
+                downvotes: []
+            };
+            question.answers.push(answer);
+        }
+
+        questions.push(question);
+        const author = users.find(u => u._id.equals(uid));
+        if (author) author.questions.push(questionId);
     }
 
-    questions.push(question);
-    const author = users.find(u => u._id.equals(uid));
-    if (author) author.questions.push(questionId);
-  }
-
-  await collectionUsers.insertMany(users);
-  await collectionQuestions.insertMany(questions);
+    await collectionUsers.insertMany(users);
+    await collectionQuestions.insertMany(questions);
 }
 
 async function initDBIfNecessary() {
-    if (!client) {
-      client = new MongoClient("mongodb://127.0.0.1:27017");
-      await client.connect();
-      db = client.db("stack-overclone");
-      collectionUsers = db.collection("users");
-      collectionQuestions = db.collection("questions");
-  
-      // Only seed if both collections are empty
-      const userCount = await collectionUsers.countDocuments();
-      const questionCount = await collectionQuestions.countDocuments();
-  
-      if (userCount === 0 && questionCount === 0) {
-        console.log("🌱 Seeding initial dummy data...");
-        await seedDummyData();
-      }
+    if (!client || !client.topology?.isConnected()) {
+        client = new MongoClient("mongodb://127.0.0.1:27017");
+        await client.connect();
+        db = client.db("stack-overclone");
+
+        if (!collectionUsers || !collectionQuestions) {
+            collectionUsers = db.collection("users");
+            collectionQuestions = db.collection("questions");
+            console.log("DB initialized")
+        }
+
+        // Only seed if both collections are empty
+        const userCount = await collectionUsers.countDocuments();
+        const questionCount = await collectionQuestions.countDocuments();
+
+        if (userCount === 0 && questionCount === 0) {
+            console.log("🌱 Seeding initial dummy data...");
+            await seedDummyData();
+        }
     }
-  }  
+}
 
 // Getter functions
+async function getAllUsers() {
+    await initDBIfNecessary();
+    return await collectionUsers.find().sort({ created: -1 }).toArray();
+}
+
 async function getUserById(userId) {
     await initDBIfNecessary();
     const _id = toObjectId(userId);
@@ -133,39 +142,39 @@ async function insertUser(user) {
 async function updateUser(userId, updates) {
     await initDBIfNecessary();
     const userObjectId = new ObjectId(userId);
-  
+
     // Validate uniqueness of username/email if changed
     if (updates.username) {
-      const existing = await collectionUsers.findOne({
-        username: updates.username,
-        _id: { $ne: userObjectId }
-      });
-      if (existing) {
-        const err = new Error("Username already taken");
-        err.type = "USERNAME_TAKEN";
-        throw err;
-      };
+        const existing = await collectionUsers.findOne({
+            username: updates.username,
+            _id: { $ne: userObjectId }
+        });
+        if (existing) {
+            const err = new Error("Username already taken");
+            err.type = "USERNAME_TAKEN";
+            throw err;
+        };
     }
-  
+
     if (updates.email) {
-      const existing = await collectionUsers.findOne({
-        email: updates.email,
-        _id: { $ne: userObjectId }
-      });
-      if (existing) {
-        const err = new Error("Email already taken");
-        err.type = "EMAIL_TAKEN";
-        throw err;
-      }
+        const existing = await collectionUsers.findOne({
+            email: updates.email,
+            _id: { $ne: userObjectId }
+        });
+        if (existing) {
+            const err = new Error("Email already taken");
+            err.type = "EMAIL_TAKEN";
+            throw err;
+        }
     }
-  
+
     const { modifiedCount } = await collectionUsers.updateOne(
-      { _id: userObjectId },
-      { $set: updates }
+        { _id: userObjectId },
+        { $set: updates }
     );
     return modifiedCount > 0;
-  }
-  
+}
+
 
 // =====Questions & Answers Functions=====
 async function insertQuestion(question) {
@@ -221,7 +230,13 @@ async function updateQuestion(questionId, updateData) {
 
     // Case 3: Editing an answer
     if (updateData.$setAnswer) {
-        const { answerId, userId, newBody } = updateData.$setAnswer;
+        const { answerId, userId, newBody, newTitle, newTags } = updateData.$setAnswer;
+
+        const updateFields = {};
+        if (newBody) updateFields["answers.$.body"] = newBody;
+        if (newTitle) updateFields["answers.$.title"] = newTitle;
+        if (newTags) updateFields["answers.$.tags"] = newTags;
+
         return await collectionQuestions.updateOne(
             {
                 _id,
@@ -229,13 +244,10 @@ async function updateQuestion(questionId, updateData) {
                 "answers.userId": userId
             },
             {
-                $set: {
-                    "answers.$.body": newBody
-                }
+                $set: updateFields
             }
         );
     }
-
     return null;
 }
 
@@ -374,7 +386,7 @@ async function toggleVoteOnAnswer(questionId, answerId, userId, voteType) {
 }
 
 module.exports = {
-    initDBIfNecessary,
+    getAllUsers,
     getUserById,
     getUserByUsername,
     getUserByEmail,
