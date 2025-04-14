@@ -35,7 +35,16 @@ To launch and use the frontend locally:
    npm run server
   
 4. The app will run at http://localhost:5173 (or another available port if 5173 is occupied).
-5. To login, use any username available
-  > alice, bob, charlie, diana, edward
-  with the password: "user". Alternatively, you can register a new user with any available username, email and password.
+
+### 🔐 Login Instructions
+
+To log in, use any of the following predefined usernames:
+
+> `alice`, `bob`, `charlie`, `diana`, `edward`  
+> **Password**: `user`
+
+Alternatively, you can register a new user by providing any unique:
+- Username
+- Email
+- Password
 
